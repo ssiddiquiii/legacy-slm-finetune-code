@@ -1,0 +1,77 @@
+# ==========================================
+# 1. Credentials & Secrets (CRITICAL)
+# ==========================================
+.env
+.env.*
+*.pem
+secrets.json
+
+# ==========================================
+# 2. Raw Data & Datasets
+# ==========================================
+# We push to Hugging Face natively, so local JSONs shouldn't be tracked
+*.json
+*.csv
+*.parquet
+*.arrow
+car_repair_hq*.json
+
+# ==========================================
+# 3. Model Weights & Training Artifacts
+# ==========================================
+# Prevents pushing heavy gigabyte files to GitHub
+lora_adapters_qlora/
+checkpoints_qlora/
+results/
+logs/
+baseline_v2_artifacts/
+post_eval_results_qlora/
+*.zip
+*.bin
+*.pt
+*.safetensors
+*.gguf
+
+# ==========================================
+# 4. Python & Environment
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# 5. Virtual Environments
+# ==========================================
+venv/
+.venv/
+env/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# 6. Jupyter & Kaggle Specific
+# ==========================================
+.ipynb_checkpoints/
+kaggle/working/
+.kaggle/
