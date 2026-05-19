@@ -14,20 +14,16 @@ REPO_ID = os.getenv("REPO_ID", "ssiddiquii/car-repair-hq-550")
 PRIVATE_REPO = os.getenv("PRIVATE_REPO", "true").strip().lower() in {"1", "true", "yes", "y"}
 SEED = int(os.getenv("SEED", "42"))
 
-GOLDEN_PER_CATEGORY = 6  
-VAL_PER_CATEGORY = 5     
+GOLDEN_PER_CATEGORY = 6     # your held out datasets
+VAL_PER_CATEGORY = 5        # your valuation datasets
+TRAIN_PER_CATEGORY = 27     # your train datasets
+SAMPLES_PER_CATEGORY = 38   # pairs count per category
 REQUIRED_KEYS = {"id", "category", "question", "answer"}
 
 def perfectly_balanced_split(data, seed):
     grouped = defaultdict(list)
     for row in data:
         grouped[row["category"]].append(row)
-
-    min_category_size = min(len(items) for items in grouped.values())
-    required_min = GOLDEN_PER_CATEGORY + VAL_PER_CATEGORY + 1
-    
-    if min_category_size < required_min:
-        raise ValueError(f"Smallest category only has {min_category_size} rows. Need at least {required_min}.")
 
     rng = random.Random(seed)
     train_data, val_data, golden_data = [], [], []
@@ -36,12 +32,13 @@ def perfectly_balanced_split(data, seed):
         items_copy = items[:]
         rng.shuffle(items_copy)
         
-        # Undersample to match the smallest category
-        balanced_items = items_copy[:min_category_size] 
+        # Take exactly SAMPLES_PER_CATEGORY (38) samples from each category
+        balanced_items = items_copy[:SAMPLES_PER_CATEGORY] 
         
+        # Split: 6 golden, 5 validation, 27 training
         golden_data.extend(balanced_items[:GOLDEN_PER_CATEGORY])
         val_data.extend(balanced_items[GOLDEN_PER_CATEGORY:GOLDEN_PER_CATEGORY + VAL_PER_CATEGORY])
-        train_data.extend(balanced_items[GOLDEN_PER_CATEGORY + VAL_PER_CATEGORY:])
+        train_data.extend(balanced_items[GOLDEN_PER_CATEGORY + VAL_PER_CATEGORY:GOLDEN_PER_CATEGORY + VAL_PER_CATEGORY + TRAIN_PER_CATEGORY])
 
     rng.shuffle(train_data)
     rng.shuffle(val_data)
@@ -53,6 +50,12 @@ if __name__ == "__main__":
     login(token=HF_TOKEN)
     with open(INPUT_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    # Convert list values to strings
+    for row in data:
+        for key, value in row.items():
+            if isinstance(value, list):
+                row[key] = " ".join(str(item) for item in value)
 
     train_data, val_data, golden_data = perfectly_balanced_split(data, SEED)
 
