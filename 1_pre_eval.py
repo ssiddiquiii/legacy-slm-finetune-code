@@ -1,6 +1,6 @@
-# ============================================================
-# CELL 1 — STABLE PIP INSTALLATION ENGINE (Run Once)
-# ============================================================
+# =============================================================================
+# Cell 1: Configure VRAM memory segments and deploy stable runtime dependencies
+# =============================================================================
 
 import os
 import sys
@@ -23,11 +23,11 @@ print(f"PyTorch engine:  {torch.__version__}")
 !pip install -q -U "unsloth[kaggle-new] @ git+https://github.com/unslothai/unsloth.git"
 !pip install -q peft accelerate bitsandbytes huggingface_hub sentencepiece deepeval litellm nest_asyncio
 
-print("\n✅ CELL 1 COMPLETE: Environment binaries locked and deployed.")
+print("\n CELL 1 COMPLETE: Environment binaries locked and deployed.")
 
-# ============================================================
-# CELL 2 — CORE FRAMEWORK IMPORTS & HARDWARE VERIFICATION
-# ============================================================
+# ======================================================================================
+# Cell 2: Verify framework versions, target hardware telemetry, and compute capabilities
+# ======================================================================================
 
 import unsloth # CRITICAL: Patches attention mechanics before transformers initialize
 import torch
@@ -73,9 +73,9 @@ try:
 except Exception as e:
     print(f"\n✗ Secrets mounting collision detected: {e}")
 
-# ============================================================
-# CELL 3 — VAULT CONFIGURATION & AUTHENTICATION
-# ============================================================
+# ==================================================================================
+# Cell 3: Bind environment credentials and authorize HuggingFace/Groq secure bridges
+# ==================================================================================
 
 import os
 from kaggle_secrets import UserSecretsClient
@@ -95,9 +95,9 @@ login(token=HF_TOKEN, add_to_git_credential=False)
 print("✓ HuggingFace instance authenticated.")
 print("✓ Groq API secure bridge verified.")
 
-# ============================================================
-# CELL 4 — PIPELINE ROUTING CONFIGURATION
-# ============================================================
+# =========================================================================================
+# Cell 4: Initialize pipeline parameters and programmatically compile workspace directories
+# =========================================================================================
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -105,7 +105,7 @@ from pathlib import Path
 @dataclass
 class Config:
     model_id: str = "unsloth/gemma-4-E2B-it"
-    dataset_repo: str = "ssiddiquii/car-repair-hq-342" # UPDATED ARTIFACT NAME
+    dataset_repo: str = "ssiddiquii/car-repair-hq-342" 
     eval_split: str = "golden_eval"
     eval_n_samples: int = 54 # Exactly 6 instances across 9 categories
     
@@ -128,16 +128,15 @@ print(f"Target Cluster:   {CONFIG.dataset_repo}")
 print(f"Target Partition: {CONFIG.eval_split}")
 print("✓ Core routing matrix locked.")
 
-# ============================================================
-# CELL 5 — STREAM PARQUET SPLIT FROM HUB
-# ============================================================
+# ======================================================================================
+# Cell 5: Stream dataset from Hugging Face Hub and isolate a deterministic sample subset
+# ======================================================================================
 
 import random
 from datasets import load_dataset
 
 print(f"Streaming clean Parquet slices [{CONFIG.eval_split}] from HF Hub...")
 
-# Streaming directly into volatile RAM, preventing local caching pollution
 eval_dataset = load_dataset(CONFIG.dataset_repo, split=CONFIG.eval_split, token=HF_TOKEN)
 test_data = eval_dataset.to_list()
 
@@ -150,9 +149,9 @@ else:
 print(f"\n✓ Native evaluation split loaded successfully: {len(eval_data)} samples verified.")
 print(f"✓ Feature Keys extracted: {list(eval_data[0].keys())}")
 
-# ============================================================
-# CELL 6 — SCHEMA DETECTION MECHANISM
-# ============================================================
+# ================================================================================
+# Cell 6: Dynamically detect feature schema keys and mount adaptive metric vectors
+# ================================================================================
 
 sample = eval_data[0]
 
@@ -182,16 +181,25 @@ if has_context:
     metric_list += ["Faithfulness", "ContextualRelevancy"]
 print(f"\nConstructed Evaluation Vector Matrix: {metric_list}")
 
-# ============================================================
-# CELL 7 — AUTOMATED JUDGE FRAMEWORK SETTING
-# ============================================================
+# ==================================================================================
+# Cell 7: Instantiate thread-safe LiteLLMJudge API wrapper and mount grading metrics
+# ==================================================================================
 
 import os, time, threading, re
 import litellm
 import nest_asyncio 
 from deepeval.models.base_model import DeepEvalBaseLLM
 from deepeval.metrics import AnswerRelevancyMetric, GEval
-from deepeval.test_case import LLMTestCase, SingleTurnParams # DEPRECATION PATCH APPLIED
+from deepeval import evaluate
+
+# DYNAMIC IMPORT SHIM: Resolves internal versioning drift in DeepEval
+from deepeval.test_case import LLMTestCase
+try:
+    from deepeval.test_case import SingleTurnParams
+    print("✓ DeepEval modern namespace 'SingleTurnParams' loaded.")
+except ImportError:
+    from deepeval.test_case import LLMTestCaseParams as SingleTurnParams
+    print("⚠ DeepEval legacy namespace resolved. Mapping 'LLMTestCaseParams' as fallback.")
 
 # Prevent nested asyncio thread lock conditions inside Kaggle Notebook
 nest_asyncio.apply()
@@ -275,9 +283,9 @@ metrics = [
             "safe advice. Heavily penalize vague, generic, or incorrect technical claims."
         ),
         evaluation_params=[
-            SingleTurnParams.INPUT,           # MAPPED FUTURE-PROOF EXTRACTIONS
-            SingleTurnParams.ACTUAL_OUTPUT,   # MAPPED FUTURE-PROOF EXTRACTIONS
-            SingleTurnParams.EXPECTED_OUTPUT, # MAPPED FUTURE-PROOF EXTRACTIONS
+            SingleTurnParams.INPUT,           # STABLE RUNTIME ALIGNMENT
+            SingleTurnParams.ACTUAL_OUTPUT,   # STABLE RUNTIME ALIGNMENT
+            SingleTurnParams.EXPECTED_OUTPUT, # STABLE RUNTIME ALIGNMENT
         ],
         threshold=CONFIG.eval_threshold,
         model=judge,
@@ -295,9 +303,9 @@ if has_context:
 print(f"Judge Active Model Target: {CONFIG.eval_model} (TPM Restricted Framework Running)")
 print(f"Total Quantitative Metrics Mounted: {len(metrics)}")
 
-# ============================================================
-# CELL 8 — LOAD BASE MODEL VIA UNSLOTH ENGINE
-# ============================================================
+# ======================================================================================
+# Cell 8: Load 4-bit quantized base model and activate optimized forward inference hooks
+# ======================================================================================
 
 import gc
 import torch
@@ -308,7 +316,6 @@ torch.cuda.empty_cache()
 
 print("Loading foundation weight distribution model via optimized Unsloth wrapper...")
 
-# Forcing FP16 tensor dtypes onto the 4-bit NF4 quantized base model to isolate linear degradation
 model, tokenizer = FastModel.from_pretrained(
     model_name=CONFIG.model_id,
     max_seq_length=CONFIG.max_input_length,
@@ -334,23 +341,23 @@ for i in range(torch.cuda.device_count()):
 
 print("\n✓ Untuned baseline model sequence is stable. Core adapters detached.")
 
-# ============================================================
-# CELL 9 — EXECUTE BASELINE INFERENCE INJECTION
-# ============================================================
+# =====================================================================================
+# Cell 9: Run greedy baseline generation using structural Gemma-4 chat template routing
+# =====================================================================================
 
 import json
 from tqdm.auto import tqdm
 
 SYSTEM_PROMPT = (
     "You are an expert car repair assistant. Answer the user's question concisely "
-    "and accurately. Be technically precise about parts, diagnostics, and procedures.\n\n"
+    "and accurately. Be technically precise about parts, diagnostics, and procedures."
 )
 
 def build_prompt(question: str) -> str:
-    # GEMMA STRUCTURAL PATCH: Inject system instructions turn directly inside user wrapper
-    combined_content = f"{SYSTEM_PROMPT}{question}"
+    # GEMMA STRUCTURAL PATCH: Segregating system and user blocks properly
     messages = [
-        {"role": "user", "content": combined_content},
+        {"role": "system", "content": SYSTEM_PROMPT.strip()},
+        {"role": "user", "content": question.strip()},
     ]
     return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
@@ -400,13 +407,25 @@ with open(BASELINE_ANSWERS, 'w') as f:
 
 print(f"\n✓ Generated base vector sequences successfully cached → {BASELINE_ANSWERS}")
 
-# ============================================================
-# CELL 10 — EXECUTE QUANTITATIVE AUTOMATED GRADING
-# ============================================================
+# ====================================================================================
+# Cell 10: Evacuate local VRAM allocations and execute checkpointed judge scoring loop
+# ====================================================================================
 
 import json
 from collections import defaultdict
 from tqdm.auto import tqdm
+
+# HARDWARE TUNING PATCH: Evacuate local inference model to clear hardware allocations during remote API scoring
+try:
+    print("Purging local foundation model from T4 to prevent runtime OOM locks...")
+    del model
+    del tokenizer
+    import gc
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("✓ VRAM completely evacuated for external API evaluation.")
+except NameError:
+    pass
 
 def to_str(value):
     if value is None: return ""
@@ -504,14 +523,14 @@ with open(BASELINE_SCORES, 'w') as f:
     json.dump(summary, f, indent=2)
 print(f"\n✓ Core summary statistics locked → {BASELINE_SCORES}")
 
-# ============================================================
-# CELL 11 — EXPORT MATRIX ARTIFACT CLUSTER
-# ============================================================
+# =====================================================================================
+# Cell 11: Compress telemetry logs and evaluation summary reports into a deployment ZIP
+# =====================================================================================
 
 import shutil
 from pathlib import Path
 
-zip_base = "/kaggle/working/baseline_v2_artifacts"
+zip_base = "/kaggle/working/baseline_artifacts"
 shutil.make_archive(base_name=zip_base, format='zip', root_dir=str(RESULTS))
 
 zip_file = Path(f"{zip_base}.zip")
