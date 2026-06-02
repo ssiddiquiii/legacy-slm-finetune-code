@@ -1,7 +1,4 @@
-# ============================================================
-# CELL 1 — STABLE KAGGLE INFRASTRUCTURE
-# ============================================================
-
+# Cell 1: Configure VRAM memory segments and deploy stable evaluation stack
 import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -15,12 +12,13 @@ print("\n" + "="*60)
 print("✅ INSTALLATIONS COMPLETE")
 print("="*60)
 
+# Cell 2: Verify framework versions and target hardware telemetry silently
+import logging
 
-# ============================================================
-# CELL 2 — ENGINE VERIFICATION
-# ============================================================
+# SILENCE EARLY FRAMEWORK CHATTER: Suppresses multi-modal placeholder warning hooks on startup
+logging.getLogger("unsloth").setLevel(logging.ERROR)
 
-import unsloth # MUST BE FIRST
+import unsloth # MUST BE FIRST AMONG DEEP LEARNING LIBRARIES
 import torch, transformers, peft, trl, accelerate, bitsandbytes, sys, datasets
 
 print("=" * 60)
@@ -36,12 +34,9 @@ if torch.cuda.is_available():
 else:
     print("\n✗ GPU NOT detected")
 
-
-# ============================================================
-# CELL 3 — Config & Artifact Verification
-# ============================================================
-
+# Cell 3: Bind environment credentials, configurations, and baseline verification files
 import json
+import os
 from pathlib import Path
 from dataclasses import dataclass
 from kaggle_secrets import UserSecretsClient
@@ -62,13 +57,8 @@ login(token=HF_TOKEN, add_to_git_credential=False)
 @dataclass
 class PostEvalConfig:
     base_model: str = "unsloth/gemma-4-E2B-it"
-    
-    # -----------------------------------------------------------------
-    # 🚨 URGENT: ARTIFACT PATHS 
-    # Update these paths to match YOUR mounted Kaggle Datasets!
-    # -----------------------------------------------------------------
     adapter_dir: str = "/kaggle/input/datasets/sameedsiddiqui0347/qlora-adapters" 
-    baseline_dir: str = "/kaggle/input/datasets/sameedsiddiqui0347/baseline-v2-artifacts" 
+    baseline_dir: str = "/kaggle/input/datasets/sameedsiddiqui0347/baseline-artifacts" 
     
     eval_model: str = "groq/llama-3.1-8b-instant"
     eval_threshold: float = 0.7
@@ -100,11 +90,7 @@ with open(baseline_scores_path) as f: baseline_scores = json.load(f)
 
 print(f"\n✓ Baseline loaded: {len(baseline_answers)} entries")
 
-
-# ============================================================
-# CELL 4 — Load model + adapters (4-BIT QLORA ALIGNED)
-# ============================================================
-
+# Cell 4: Load target adapters onto 4-bit foundation weights with active inference routing
 import gc; gc.collect(); torch.cuda.empty_cache()
 from unsloth import FastModel
 
@@ -112,15 +98,17 @@ print("=" * 60)
 print("LOADING FINE-TUNED MODEL (QLoRA 4-BIT)")
 print("=" * 60)
 
-# CRITICAL FIX: Must load in 4-bit to match training state
 model, tokenizer = FastModel.from_pretrained(
     model_name=CFG.adapter_dir,
     max_seq_length=CFG.max_input_length,
-    load_in_4bit=True,               # <-- ALIGNED WITH FINETUNE
-    dtype=torch.float16,             # <-- ALIGNED WITH FINETUNE
+    load_in_4bit=True,               
+    dtype=torch.float16,             
     full_finetuning=False,
     token=HF_TOKEN,
 )
+
+# Pre-emptively disable caching to keep generation loops stable
+model.config.use_cache = False
 
 lora_count = sum(1 for name, _ in model.named_modules() if 'lora' in name.lower())
 print(f"\n✓ Model + adapters loaded. LoRA modules detected: {lora_count}")
@@ -130,11 +118,7 @@ try: FastModel.for_inference(model)
 except AttributeError: pass
 model.eval()
 
-
-# ============================================================
-# CELL 5 — Generate fine-tuned answers (GEMMA PATCHED)
-# ============================================================
-
+# Cell 5: Execute deterministic inference using aligned Gemma-4 system token boundaries
 from tqdm.auto import tqdm
 
 SYSTEM_PROMPT = (
@@ -144,9 +128,11 @@ SYSTEM_PROMPT = (
 
 @torch.no_grad()
 def generate_answer(question: str) -> str:
-    # GEMMA FIX: Merge system prompt into user turn
-    combined_content = f"{SYSTEM_PROMPT}\n\n{question}"
-    messages = [{"role": "user", "content": combined_content}]
+    # FIXED: Restored system-user dictionary separation to reflect fine-tuning data layout
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT.strip()},
+        {"role": "user", "content": question.strip()}
+    ]
     
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     
@@ -155,7 +141,7 @@ def generate_answer(question: str) -> str:
         return_tensors="pt",
         truncation=True,
         max_length=CFG.max_input_length,
-        add_special_tokens=False, # <-- CRITICAL FIX: Prevents Double <BOS>
+        add_special_tokens=False, # Prevents double BOS token errors
     ).to(model.device)
     
     outputs = model.generate(
@@ -184,25 +170,28 @@ for i, item in enumerate(tqdm(baseline_answers, desc="Generating")):
 with open(FINETUNED_ANSWERS_PATH, 'w') as f: json.dump(finetuned_results, f, indent=2, ensure_ascii=False)
 print(f"\n✓ Saved {len(finetuned_results)} fine-tuned answers")
 
-
-# ============================================================
-# CELL 6 — Configure and Run DeepEval (ASYNC CRASH PREVENTED)
-# ============================================================
-
+# Cell 6: Instantiate thread-safe judge client and measure post-finetune metrics
 import time, threading, re
 import litellm
 import nest_asyncio
 from collections import defaultdict
 from deepeval.models.base_model import DeepEvalBaseLLM
 from deepeval.metrics import AnswerRelevancyMetric, GEval
-from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+
+# DYNAMIC IMPORT SHIM: Resolves internal versioning drift in DeepEval
+from deepeval.test_case import LLMTestCase
+try:
+    from deeval.test_case import SingleTurnParams
+    print("✓ DeepEval modern namespace 'SingleTurnParams' loaded.")
+except ImportError:
+    from deepeval.test_case import LLMTestCaseParams as SingleTurnParams
+    print("⚠ DeepEval legacy namespace resolved. Mapping 'LLMTestCaseParams' as fallback.")
 
 # KAGGLE NOTEBOOK FIX: Prevent asyncio loop crash
 nest_asyncio.apply()
 litellm.suppress_debug_info = True
 
 class LiteLLMJudge(DeepEvalBaseLLM):
-    """Groq judge via LiteLLM - Proven implementation."""
     _lock = threading.Lock()
     _call_log = []
 
@@ -275,7 +264,7 @@ metrics = [
             "answer to the input question, using expected_output as ground truth. For car repair, "
             "check: correct parts, diagnostics, and procedures."
         ),
-        evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
+        evaluation_params=[SingleTurnParams.INPUT, SingleTurnParams.ACTUAL_OUTPUT, SingleTurnParams.EXPECTED_OUTPUT],
         threshold=CFG.eval_threshold, model=judge, async_mode=False
     ),
 ]
@@ -304,7 +293,6 @@ for i, tc in enumerate(tqdm(test_cases, desc="Scoring")):
         except Exception as e: 
             print(f"\n  [case {i}] {mname} failed: {str(e)[:100]}")
 
-# CRITICAL FIX: Graceful failover to prevent ZeroDivisionError if an API failure occurs
 summary = {
     "model": "google/gemma-4-E2B-it + QLoRA",
     "judge": CFG.eval_model,
@@ -319,11 +307,7 @@ summary = {
 with open(POSTEVAL_SCORES_PATH, 'w') as f: json.dump(summary, f, indent=2)
 print(f"\n✓ Saved post-eval summary → {POSTEVAL_SCORES_PATH}")
 
-
-# ============================================================
-# CELL 7 — Detailed Delta Report & Zip Artifacts
-# ============================================================
-
+# Cell 7: Compile comparison metrics, generate verdict, and archive performance records
 import shutil
 DELTA_REPORT_PATH = RESULTS / "detailed_delta_report.json"
 
@@ -371,7 +355,7 @@ else: verdict = "MARGINAL / FLAT"
 print(f"\n{'=' * 80}")
 print("VERDICT")
 print(f"{'=' * 80}")
-print(f"  Overall assessment:      {verdict}")
+print(f"   Overall assessment:      {verdict}")
 print(f"{'=' * 80}")
 
 with open(DELTA_REPORT_PATH, 'w') as f: json.dump(delta_report, f, indent=2)
@@ -379,3 +363,4 @@ with open(DELTA_REPORT_PATH, 'w') as f: json.dump(delta_report, f, indent=2)
 zip_path = f"{RESULTS}.zip"
 shutil.make_archive(base_name=str(RESULTS), format="zip", root_dir=str(RESULTS))
 print(f"\n✓ Pipeline complete. Artifacts zipped → {zip_path}")
+

@@ -1,6 +1,6 @@
-# =============================================================================
-# Cell 1: Configure VRAM memory segments and deploy stable runtime dependencies
-# =============================================================================
+# ============================================================
+# CELL 1 — STABLE PIP INSTALLATION ENGINE (Run Once)
+# ============================================================
 
 import os
 import sys
@@ -23,11 +23,11 @@ print(f"PyTorch engine:  {torch.__version__}")
 !pip install -q -U "unsloth[kaggle-new] @ git+https://github.com/unslothai/unsloth.git"
 !pip install -q peft accelerate bitsandbytes huggingface_hub sentencepiece deepeval litellm nest_asyncio
 
-print("\n CELL 1 COMPLETE: Environment binaries locked and deployed.")
+print("\n✅ CELL 1 COMPLETE: Environment binaries locked and deployed.")
 
-# ======================================================================================
-# Cell 2: Verify framework versions, target hardware telemetry, and compute capabilities
-# ======================================================================================
+# ============================================================
+# CELL 2 — CORE FRAMEWORK IMPORTS & HARDWARE VERIFICATION
+# ============================================================
 
 import unsloth # CRITICAL: Patches attention mechanics before transformers initialize
 import torch
@@ -73,9 +73,9 @@ try:
 except Exception as e:
     print(f"\n✗ Secrets mounting collision detected: {e}")
 
-# ==================================================================================
-# Cell 3: Bind environment credentials and authorize HuggingFace/Groq secure bridges
-# ==================================================================================
+# ============================================================
+# CELL 3 — VAULT CONFIGURATION & AUTHENTICATION
+# ============================================================
 
 import os
 from kaggle_secrets import UserSecretsClient
@@ -95,9 +95,9 @@ login(token=HF_TOKEN, add_to_git_credential=False)
 print("✓ HuggingFace instance authenticated.")
 print("✓ Groq API secure bridge verified.")
 
-# =========================================================================================
-# Cell 4: Initialize pipeline parameters and programmatically compile workspace directories
-# =========================================================================================
+# ============================================================
+# CELL 4 — PIPELINE ROUTING CONFIGURATION
+# ============================================================
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -105,7 +105,7 @@ from pathlib import Path
 @dataclass
 class Config:
     model_id: str = "unsloth/gemma-4-E2B-it"
-    dataset_repo: str = "ssiddiquii/car-repair-hq-342" 
+    dataset_repo: str = "ssiddiquii/car-repair-hq-342" # UPDATED ARTIFACT NAME
     eval_split: str = "golden_eval"
     eval_n_samples: int = 54 # Exactly 6 instances across 9 categories
     
@@ -128,15 +128,16 @@ print(f"Target Cluster:   {CONFIG.dataset_repo}")
 print(f"Target Partition: {CONFIG.eval_split}")
 print("✓ Core routing matrix locked.")
 
-# ======================================================================================
-# Cell 5: Stream dataset from Hugging Face Hub and isolate a deterministic sample subset
-# ======================================================================================
+# ============================================================
+# CELL 5 — STREAM PARQUET SPLIT FROM HUB
+# ============================================================
 
 import random
 from datasets import load_dataset
 
 print(f"Streaming clean Parquet slices [{CONFIG.eval_split}] from HF Hub...")
 
+# Streaming directly into volatile RAM, preventing local caching pollution
 eval_dataset = load_dataset(CONFIG.dataset_repo, split=CONFIG.eval_split, token=HF_TOKEN)
 test_data = eval_dataset.to_list()
 
@@ -149,9 +150,9 @@ else:
 print(f"\n✓ Native evaluation split loaded successfully: {len(eval_data)} samples verified.")
 print(f"✓ Feature Keys extracted: {list(eval_data[0].keys())}")
 
-# ================================================================================
-# Cell 6: Dynamically detect feature schema keys and mount adaptive metric vectors
-# ================================================================================
+# ============================================================
+# CELL 6 — SCHEMA DETECTION MECHANISM
+# ============================================================
 
 sample = eval_data[0]
 
@@ -181,9 +182,9 @@ if has_context:
     metric_list += ["Faithfulness", "ContextualRelevancy"]
 print(f"\nConstructed Evaluation Vector Matrix: {metric_list}")
 
-# ==================================================================================
-# Cell 7: Instantiate thread-safe LiteLLMJudge API wrapper and mount grading metrics
-# ==================================================================================
+# ============================================================
+# CELL 7 — AUTOMATED JUDGE FRAMEWORK SETTING
+# ============================================================
 
 import os, time, threading, re
 import litellm
@@ -303,9 +304,9 @@ if has_context:
 print(f"Judge Active Model Target: {CONFIG.eval_model} (TPM Restricted Framework Running)")
 print(f"Total Quantitative Metrics Mounted: {len(metrics)}")
 
-# ======================================================================================
-# Cell 8: Load 4-bit quantized base model and activate optimized forward inference hooks
-# ======================================================================================
+# ============================================================
+# CELL 8 — LOAD BASE MODEL VIA UNSLOTH ENGINE
+# ============================================================
 
 import gc
 import torch
@@ -316,6 +317,7 @@ torch.cuda.empty_cache()
 
 print("Loading foundation weight distribution model via optimized Unsloth wrapper...")
 
+# Forcing FP16 tensor dtypes onto the 4-bit NF4 quantized base model to isolate linear degradation
 model, tokenizer = FastModel.from_pretrained(
     model_name=CONFIG.model_id,
     max_seq_length=CONFIG.max_input_length,
@@ -341,9 +343,9 @@ for i in range(torch.cuda.device_count()):
 
 print("\n✓ Untuned baseline model sequence is stable. Core adapters detached.")
 
-# =====================================================================================
-# Cell 9: Run greedy baseline generation using structural Gemma-4 chat template routing
-# =====================================================================================
+# ============================================================
+# CELL 9 — EXECUTE BASELINE INFERENCE INJECTION
+# ============================================================
 
 import json
 from tqdm.auto import tqdm
@@ -407,9 +409,9 @@ with open(BASELINE_ANSWERS, 'w') as f:
 
 print(f"\n✓ Generated base vector sequences successfully cached → {BASELINE_ANSWERS}")
 
-# ====================================================================================
-# Cell 10: Evacuate local VRAM allocations and execute checkpointed judge scoring loop
-# ====================================================================================
+# ============================================================
+# CELL 10 — EXECUTE QUANTITATIVE AUTOMATED GRADING
+# ============================================================
 
 import json
 from collections import defaultdict
@@ -523,14 +525,14 @@ with open(BASELINE_SCORES, 'w') as f:
     json.dump(summary, f, indent=2)
 print(f"\n✓ Core summary statistics locked → {BASELINE_SCORES}")
 
-# =====================================================================================
-# Cell 11: Compress telemetry logs and evaluation summary reports into a deployment ZIP
-# =====================================================================================
+# ============================================================
+# CELL 11 — EXPORT MATRIX ARTIFACT CLUSTER
+# ============================================================
 
 import shutil
 from pathlib import Path
 
-zip_base = "/kaggle/working/baseline_artifacts"
+zip_base = "/kaggle/working/baseline_v2_artifacts"
 shutil.make_archive(base_name=zip_base, format='zip', root_dir=str(RESULTS))
 
 zip_file = Path(f"{zip_base}.zip")
